@@ -1,54 +1,53 @@
-name: Deploy web app to Azure Static Web Apps
+name: Azure Static Web Apps CI/CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
   pull_request:
     types: [opened, synchronize, reopened, closed]
-    branches: [ "main" ]
-
-env:
-  APP_LOCATION: "/" # location of your React app
-  API_LOCATION: "" # leave empty if no backend
-  APP_ARTIFACT_LOCATION: "dist" # output folder from vite build
-  AZURE_STATIC_WEB_APPS_API_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_CALM_FLOWER_0DF747F10 }} # ✅ your actual secret name
-
-permissions:
-  contents: read
+    branches:
+      - main
 
 jobs:
   build_and_deploy_job:
-    permissions:
-      contents: read
-      pull-requests: write
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     name: Build and Deploy Job
+
     steps:
+      # ✅ Step 1: Checkout your repo
       - uses: actions/checkout@v4
         with:
           submodules: true
+          lfs: false
 
-      # ✅ Optional Debug Check (confirm secret is accessible)
-      - name: Check Azure Token
+      # ✅ Step 2: Explicitly set Node.js 20.19.x (required by Vite)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.19.0
+          cache: 'npm'
+
+      # ✅ Step 3: Clean, install and build manually (bypass Oryx auto-build)
+      - name: Install and Build
         run: |
-          if [ -z "${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_CALM_FLOWER_0DF747F10 }}" ]; then
-            echo "❌ Missing deployment token!"
-            exit 1
-          else
-            echo "✅ Deployment token detected!"
-          fi
+          rm -rf node_modules package-lock.json
+          npm ci
+          npm run build
 
-      - name: Build And Deploy
+      # ✅ Step 4: Deploy manually built files to Azure Static Web Apps
+      - name: Deploy to Azure Static Web App
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ env.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_CALM_FLOWER_0DF747F10 }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: ${{ env.APP_LOCATION }}
-          api_location: ${{ env.API_LOCATION }}
-          app_artifact_location: ${{ env.APP_ARTIFACT_LOCATION }}
+          skip_app_build: true # ✅ disables Oryx auto-build
+          app_location: "/" # root folder containing package.json
+          api_location: ""  # no backend
+          app_artifact_location: "dist" # Vite build output
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
@@ -58,5 +57,5 @@ jobs:
       - name: Close Pull Request
         uses: Azure/static-web-apps-deploy@v1
         with:
-          azure_static_web_apps_api_token: ${{ env.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_CALM_FLOWER_0DF747F10 }}
           action: "close"
