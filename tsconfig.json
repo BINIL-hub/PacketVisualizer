@@ -1,17 +1,45 @@
 {
   "compilerOptions": {
+    /* ✅ Modern JavaScript output */
     "target": "ESNext",
+
+    /* ✅ Required for React + TypeScript class field behavior */
     "useDefineForClassFields": true,
+
+    /* ✅ Module system compatible with Vite + ESBuild */
     "module": "ESNext",
+
+    /* ✅ Include latest DOM and ECMAScript features */
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
+
+    /* ✅ Skip checking node_modules types for speed */
     "skipLibCheck": true,
+
+    /* ✅ Required for isolated file compilation (Vite) */
     "isolatedModules": true,
+
+    /* ✅ Enable compatibility between CommonJS and ES modules */
     "esModuleInterop": true,
+
+    /* ✅ Modern Node module resolution */
     "moduleResolution": "Node",
+
+    /* ✅ Allow importing JSON files */
     "resolveJsonModule": true,
+
+    /* ✅ Prevent emitting JS files (Vite handles this) */
     "noEmit": true,
+
+    /* ✅ JSX support for React 17+ */
     "jsx": "react-jsx",
-    "types": ["vite/client", "node"]  // ✅ Ensure both types are listed
+
+    /* ✅ Allow importing `.ts` and `.tsx` explicitly if needed */
+    "allowImportingTsExtensions": true,
+
+    /* ✅ Explicitly include required typings */
+    "types": ["vite/client", "node"]
   },
+
+  /* ✅ Limit TypeScript scanning to the src folder */
   "include": ["src"]
 }
