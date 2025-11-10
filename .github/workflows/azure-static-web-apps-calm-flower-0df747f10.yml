@@ -16,38 +16,48 @@ jobs:
     name: Build and Deploy Job
 
     steps:
-      # ✅ Step 1: Checkout your repo
+      # ✅ Step 1: Checkout repo
       - uses: actions/checkout@v4
         with:
           submodules: true
           lfs: false
 
-      # ✅ Step 2: Explicitly set Node.js 20.19.x (Vite requires >=20.19)
+      # ✅ Step 2: Setup Node 20.19.x
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20.19.0
           cache: 'npm'
 
-      # ✅ Step 3: Install dependencies and build manually (ensures correct build output)
-      - name: Install and Build
+      # ✅ Step 3: Clean install & rebuild (fix rollup bug)
+      - name: Clean and Install Dependencies
         run: |
-          npm ci
-          npm run build
+          echo "Cleaning node_modules and lock file..."
+          rm -rf node_modules package-lock.json
+          npm cache clean --force
+          echo "Installing dependencies with retry..."
+          for i in 1 2 3; do npm ci && break || sleep 10; done
 
-      # ✅ Step 4: Deploy to Azure Static Web Apps
+      # ✅ Step 4: Manually build app
+      - name: Build App
+        run: |
+          echo "Building React + Vite project..."
+          npm run build || (echo "Build failed, retrying..." && npm run build)
+
+      # ✅ Step 5: Deploy to Azure Static Web Apps
       - name: Deploy to Azure Static Web App
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_CALM_FLOWER_0DF747F10 }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for GitHub integrations (PR comments, etc.)
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "/" # root folder containing package.json
-          api_location: ""  # no API (React frontend only)
-          app_artifact_location: "dist" # output folder after vite build
+          skip_app_build: true # ✅ Prevents Oryx auto-build (which breaks Node version)
+          app_location: "/"
+          api_location: ""
+          app_artifact_location: "dist"
 
-  # ✅ Optional: Handles closing pull requests
+  # ✅ Close pull requests cleanly
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
